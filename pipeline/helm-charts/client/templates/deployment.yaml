@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.serviceName }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    app: {{ .Values.application }}
+    envName: {{ .Values.global.envName }}
+    serviceName: {{ .Values.serviceName }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.application }}
+      envName: {{ .Values.global.envName }}
+      serviceName: {{ .Values.serviceName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.application }}
+        envName: {{ .Values.global.envName }}
+        serviceName: {{ .Values.serviceName }}
+    spec:
+      {{- if .Values.global.image.useSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.image.pullSecret }}
+      {{- end }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ .Values.application | quote }}
+                - key: serviceName
+                  operator: In
+                  values:
+                  - {{ .Values.serviceName | quote }}
+                - key: envName
+                  operator: In
+                  values:
+                  - {{ .Values.global.envName | quote }}
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.global.image.server }}/{{ .Values.global.image.repo }}/{{ .Values.dockerImageName }}:{{ .Values.global.image.tag }}"
+        env:
+        - name: API_URL
+          value: {{ .Values.apiUrl | quote }}
+        lifecycle:
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "15"]
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        {{- if .Values.enableChecks }}
+        readinessProbe:
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          httpGet:
+            path: /
+            port: {{ .Values.service.internalPort }}
+        {{- end }}

@@ -1,0 +1,58 @@
+{{- if eq .Values.ingress.class "traefik" }}
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Values.serviceName }}-ingressroute"
+  namespace: {{ .Values.global.namespace }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    {{- if .Values.ingress.fqdn }}
+    - match: Host(`{{ .Values.ingress.fqdn }}`) && PathPrefix(`{{ .Values.ingress.path }}`)
+    {{- else }}
+    - match: Host(`{{ .Values.ingress.host }}.{{ .Values.ingress.domain }}`) && PathPrefix(`{{ .Values.ingress.path }}`)
+    {{- end }}
+      kind: Rule
+      services:
+        - name: {{ .Values.serviceName }}
+          port: {{ .Values.service.externalPort }}
+{{- else }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.serviceName }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    app: {{ .Values.application }}
+    envName: {{ .Values.global.envName }}
+    serviceName: {{ .Values.serviceName }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.class }}
+    ingress.kubernetes.io/rewrite-target: /
+    ingress.kubernetes.io/add-base-url: 'True'
+spec:
+  {{- if .Values.ingress.useTls }}
+  tls:
+    - hosts:
+      {{- if .Values.ingress.fqdn }}
+      - {{ .Values.ingress.fqdn | quote }}
+      {{- else }}
+      - "{{ .Values.ingress.host }}.{{ .Values.ingress.domain }}"
+      {{- end }}
+      secretName: {{ .Values.ingress.tlsSecret }}
+  {{- end }}
+  rules:
+  {{- if .Values.ingress.fqdn }}
+  - host: {{ .Values.ingress.fqdn | quote }}
+  {{- else }}
+  - host: "{{ .Values.ingress.host }}.{{ .Values.ingress.domain }}"
+  {{- end }}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ .Values.serviceName }}
+          servicePort: {{ .Values.service.externalPort }}
+        path: {{ .Values.ingress.path | quote }}
+{{- end }}

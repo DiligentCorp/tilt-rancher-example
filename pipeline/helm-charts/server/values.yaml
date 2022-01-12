@@ -1,0 +1,55 @@
+####
+#
+# Items in this section MUST or SHOULD be overriden
+#
+###
+
+global:
+  envName: dev
+  namespace: default
+  image:
+    server: registry.local
+    repo: development
+    tag: latest
+    # Should not need to override this except in dev
+    pullPolicy: IfNotPresent
+    useSecret: false
+    pullSecret: na
+ingress:
+  # If fqdn is provided, it takes precedence over the separate host and domain.
+  fqdn: localhost
+  host: mern-example-dev
+  domain: client.local
+  useTls: false
+  # The SSL cert that will be used to provide TLS.
+  tlsSecret:
+  class: nginx
+  path: /api
+
+# How many pods to start
+replicaCount: 1
+
+# Restrict the pods to specific nodes if necessary
+nodeSelector: {}
+
+resources:
+  requests:
+    cpu: 70m
+    memory: 200Mi
+  limits:
+    memory: 500Mi
+
+# Application configuration settings
+
+mongodb:
+  uri: mongodb://mongodb/myFirstDatabase
+
+# Base values should not need to override
+application: mern-example
+serviceName: server
+dockerImageName: server
+
+# Base values should not need to override
+service:
+  externalPort: 5000
+  internalPort: 5000

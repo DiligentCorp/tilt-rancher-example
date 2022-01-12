@@ -1,0 +1,7 @@
+enableChecks: false
+resources:
+  requests:
+    cpu: 200m
+    memory: 500Mi
+  limits:
+    memory: 1000Mi
