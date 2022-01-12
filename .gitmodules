@@ -1,0 +1,3 @@
+[submodule "mern-stack-example"]
+	path = mern-stack-example
+	url = https://github.com/mongodb-developer/mern-stack-example.git
